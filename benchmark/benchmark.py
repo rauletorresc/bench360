@@ -248,6 +248,9 @@ class ModelBenchmark:
         meta = {
             "model_name":   self.model_name,
             "model_size_mb": self.model_size,
+            "temperature":   self.temperature,
+            "top_p":         self.top_p,
+            "max_tokens":    self.max_tokens,
             "task":          task,
             "scenario":      scenario,
             "backend":       self.backend,
