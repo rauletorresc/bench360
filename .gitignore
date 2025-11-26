@@ -179,3 +179,4 @@ excl_repo
 results/
 benchmark/lookup/database/
 MMLU/
+.idea/

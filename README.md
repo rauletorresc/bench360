@@ -107,8 +107,11 @@ export HF_TOKEN=<your HF token>
 ```yaml
 # config.yaml
 backend: tgi
-hf_model: mistralai/Mistral-7B-Instruct-v0.3
-model_name: Mistral-7B
+hf_model: 
+  - name: mistralai/Mistral-7B-Instruct-v0.3
+    top_p: 0.9
+    max_tokens: 256
+    temperature: 0.3
 task: qa
 scenario: single
 samples: 256
@@ -127,8 +130,14 @@ Use **lists** to define a Cartesian product:
 ```yaml
 backend: [tgi, vllm]
 hf_model:
-  - mistralai/Mistral-7B-Instruct-v0.3
-  - Qwen/Qwen2.5-7B-Instruct
+  - name: mistralai/Mistral-7B-Instruct-v0.3
+    top_p: 0.9
+    max_tokens: 256
+    temperature: 0.3
+  - name: Qwen/Qwen2.5-7B-Instruct
+    top_p: 0.7
+    max_tokens: 256
+    temperature: 0.8
 task: [summarization, sql, qa]
 scenario: [single, batch, server]
 
