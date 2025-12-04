@@ -251,10 +251,25 @@ def _multi_run_cycle(
 
     with progress:
         for idx, cfg in enumerate(runs, 1):
+            hf_model_cfg = cfg["hf_model"]
+
+            model_repo = hf_model_cfg["name"]
+            temperature = hf_model_cfg.get("temperature", 0.6)
+            top_p = hf_model_cfg.get("top_p", 0.95)
+            max_tokens = hf_model_cfg.get("max_tokens", 100)
+
+            # ensure model_name is a simple string for filenames / logs
+            cfg["model_name"] = cfg.get("model_name", model_repo)
+
+            console.print(
+                f"Configuration: {cfg['backend']}/{cfg['model_name']} "
+                f"{cfg['task']}:{cfg['scenario']} {_param_bundle(cfg)}"
+            )
+
             desc = f"{cfg['backend']}/{cfg['model_name']} {cfg['task']}:{cfg['scenario']} {_param_bundle(cfg)}"
             progress.update(task_id, description=desc)
 
-            key = (cfg["backend"], cfg["hf_model"])
+            key = (cfg["backend"], model_repo)   # use backend + repo id as cache key
             if key != active_key:
                 if current is not None:
                     current.iec.close()
@@ -262,7 +277,10 @@ def _multi_run_cycle(
                 current = ModelBenchmark(
                     backend=cfg["backend"],
                     model_name=cfg["model_name"],
-                    model_path=cfg["hf_model"],
+                    model_path=model_repo,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_tokens=max_tokens,
                     verbose=verbose,
                 )
                 active_key = key

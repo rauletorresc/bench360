@@ -37,9 +37,10 @@ def _sanitize(run: Dict[str, Any]) -> Dict[str, Any]:
         _zap(run, "batch_size", "run_time",
                   "concurrent_users", "requests_per_user_per_min")
 
-    # ensure model_name
+    # ensure model_name **from hf_model.name**
     if not run.get("model_name"):
-        run["model_name"] = _derive_name(run["hf_model"])
+        repo = run["hf_model"]["name"]
+        run["model_name"] = _derive_name(repo)  # qwen/qwen3-4b → qwen3-4b
 
     return run
 # ───────────────────────── main loader
@@ -67,7 +68,7 @@ def load_multi_cfg(path: str | Path) -> List[Dict[str, Any]]:
     combos = uniq
 
     # 5) stable ordering so we reuse engines
-    combos.sort(key=lambda d: (d["backend"], d["hf_model"]))
+    combos.sort(key=lambda d: (d["backend"], d["hf_model"]["name"]))
     return combos
 
 # ───────────────────────── smoke-test
