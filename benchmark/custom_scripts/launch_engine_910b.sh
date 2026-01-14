@@ -5,7 +5,7 @@
 # Usage:
 #   ./launch_engine --engine=<engine> --model=<model>
 #
-#   <engine> ∈ { vllm | xllm }
+#   <engine> ∈ { vllm | sglang | xllm }
 #   <model>  is the Hugging Face model ID (e.g. “mistralai/Mistral-7B-Instruct-v0.3”)
 #
 # Example:
@@ -32,7 +32,7 @@ for ARG in "$@"; do
       ;;
     *)
       echo "Unknown argument: $ARG"
-      echo "Usage: $0 --engine=<vllm|xllm> --model=<your-org/your-model-name>"
+      echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name>"
       exit 1
       ;;
   esac
@@ -40,7 +40,7 @@ done
 
 if [[ -z "$ENGINE" || -z "$MODEL" ]]; then
   echo "Error: both --engine and --model must be provided."
-  echo "Usage: $0 --engine=<vllm|xllm> --model=<your-org/your-model-name>"
+  echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name>"
   exit 1
 fi
 
@@ -113,8 +113,66 @@ case "$ENGINE" in
         --distributed-executor-backend="mp"
     ;;
 
+sglang)
+    docker run --rm \
+      -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+      -e HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" \
+      -p 127.0.0.1:${PORT}:${PORT} \
+      --ipc=host \
+      --network=host \
+      --privileged=true \
+      --device=/dev/davinci0 \
+      --device=/dev/davinci1 \
+      --device=/dev/davinci2 \
+      --device=/dev/davinci3 \
+      --device=/dev/davinci4 \
+      --device=/dev/davinci5 \
+      --device=/dev/davinci6 \
+      --device=/dev/davinci7 \
+      --device=/dev/davinci_manager \
+      --device=/dev/devmm_svm \
+      --device=/dev/hisi_hdc \
+      -v /usr/local/sbin/:/usr/local/sbin/ \
+      -v /var/log/npu/slog/:/var/log/npu/slog \
+      -v /var/log/npu/profiling/:/var/log/npu/profiling \
+      -v /var/log/npu/dump/:/var/log/npu/dump \
+      -v /var/log/npu/:/usr/slog \
+      -v /etc/hccn.conf:/etc/hccn.conf \
+      -v /usr/local/bin/npu-smi:/usr/local/bin/npu-smi \
+      -v /usr/local/dcmi:/usr/local/dcmi \
+      -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
+      -v /usr/local/Ascend/driver/lib64/:/usr/local/Ascend/driver/lib64/ \
+      -v /usr/local/Ascend/driver/version.info:/usr/local/Ascend/driver/version.info \
+      -v /etc/ascend_install.info:/etc/ascend_install.info \
+      -v /etc/vnpu.cfg:/etc/vnpu.cfg \
+      -v /opt/shared/models/:/opt/shared/models/ \
+      ${HOST_CA_CERT:+-v $HOST_CA_CERT:$HOST_CA_CERT:ro} \
+      -e REQUESTS_CA_BUNDLE="$HOST_CA_CERT" \
+      -e CURL_CA_BUNDLE="$HOST_CA_CERT" \
+      -e SSL_CERT_FILE="$HOST_CA_CERT" \
+      -e GIT_SSL_NO_VERIFY=true \
+      -e GIT_SSL_CAINFO="$HOST_CA_CERT" \
+      -e http_proxy="$HTTP_PROXY" \
+      -e https_proxy="$HTTPS_PROXY" \
+      -e no_proxy="$NO_PROXY" \
+      -e HTTP_PROXY="$HTTP_PROXY" \
+      -e HTTPS_PROXY="$HTTPS_PROXY" \
+      -e NO_PROXY="$NO_PROXY" \
+      --shm-size="250g" \
+      quay.io/ascend/sglang:v0.5.5-cann8.2.rc1-910b \
+        bash -c "\
+        pip install --no-cache-dir protobuf sentencepiece --break-system-packages && \
+        python3 -m sglang.launch_server \
+          --model-path $MODEL \
+          --host 0.0.0.0 \
+          --port $PORT \
+          --device npu \
+          --attention-backend ascend \
+          --mem-fraction-static 0.6
+        "
+    ;;
+
   xllm)
-    set -o xtrace
     docker run --rm \
       -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
       -e HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" \
@@ -180,7 +238,7 @@ case "$ENGINE" in
 
   *)
     echo "Error: unsupported engine '$ENGINE'."
-    echo "Please choose one of: vllm, xllm."
+    echo "Please choose one of: vllm, sglang, xllm."
     exit 1
     ;;
 esac
