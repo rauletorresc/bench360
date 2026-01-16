@@ -243,7 +243,6 @@ class ModelBenchmark:
 
         # optional warm-up
         self.iec.warmup()
-        ttft = self.iec.measure_ttft()
 
         self.model_size = self.get_model_size(self.model_path)
 
@@ -256,9 +255,7 @@ class ModelBenchmark:
             "task":          task,
             "scenario":      scenario,
             "backend":       self.backend,
-            "startup":       round(startup, 4),
-            "ttft_sec":      round(ttft, 4),
-            "coldstart":     round(startup + ttft, 4)
+            "coldstart":     round(startup, 4)
         }
 
         # ── cache for later calls ─────────────────────────────────
@@ -611,6 +608,7 @@ class ModelBenchmark:
 
         else:  # single or other non-server, non-batch scenario
             for prompt, ref in zip(prompts, refs):
+                ttft = self.iec.measure_ttft([prompt], temperature=self.temperature, top_p=self.top_p)
                 t0 = time.time()
                 raw_out = self.generate([prompt])[0]
                 gen_time = time.time() - t0
@@ -619,6 +617,7 @@ class ModelBenchmark:
                     "generated_raw": raw_out,
                     "reference": ref,
                     "generation_time": gen_time,
+                    "ttft": ttft,
                 })
 
         # 8) stop monitor
@@ -709,6 +708,7 @@ class ModelBenchmark:
             nt = tok_cnt(generated)     # number of tokens generated
             ns = sent_cnt(generated, mode = scenario)    # number of sentences generated
             gen_time = rec["generation_time"]
+            ttft = rec["ttft"]
 
             # 1) Average Token Latency (seconds per token)
             ATL = gen_time / nt if nt > 0 else 0.0
@@ -762,6 +762,7 @@ class ModelBenchmark:
                 "generated_answer":    generated,
                 "reference_answer":    rec["reference"],
                 "generation_time":     gen_time,
+                "ttft":                ttft,
                 "tokens_generated":    nt,
                 "sentences_generated": ns,
                 "ATL":                 round(ATL, 6),

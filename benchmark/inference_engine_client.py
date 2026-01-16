@@ -143,23 +143,24 @@ class InferenceEngineClient:
                 time.sleep(1.0)
                 continue
 
-    def measure_ttft(self) -> float:
+    def measure_ttft(
+            self,
+            prompt,
+            temperature: float = 0.1,
+            top_p: float = 0.9,
+        ) -> float:
         """
         Issue a 1‐token streaming request and measure the time until the first chunk arrives.
         """
         import time
-        prompt = (
-            "Artificial intelligence is a rapidly evolving field with applications in "
-            "healthcare, finance, education, and more. One of the most transformative "
-            "technologies is"
-        )
 
         start = time.time()
         stream_resp = self.client.completions.create(
             model=self.model,
             prompt=prompt,
             max_tokens=1,
-            temperature=0.1,
+            temperature=temperature,
+            top_p=top_p,
             stream=True,
         )
 
@@ -227,6 +228,11 @@ if __name__ == "__main__":
     client = InferenceEngineClient()
     client.launch(backend="tgi", model="Qwen/Qwen2.5-7B-Instruct")
     client.warmup()
-    ttft = client.measure_ttft()
+    prompt = (
+            "Artificial intelligence is a rapidly evolving field with applications in "
+            "healthcare, finance, education, and more. One of the most transformative "
+            "technologies is"
+        )
+    ttft = client.measure_ttft(prompt)
     print(f"TTFT: {ttft:.3f} seconds")
     client.close()
