@@ -110,7 +110,8 @@ case "$ENGINE" in
         --max-model-len 4096 \
         --port "$PORT" \
         --tensor-parallel-size 1 \
-        --distributed-executor-backend="mp"
+        --distributed-executor-backend="mp" \
+        -cc.cudagraph_mode="FULL_DECODE_ONLY"
     ;;
 
 sglang)

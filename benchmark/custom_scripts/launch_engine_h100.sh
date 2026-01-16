@@ -71,13 +71,17 @@ case "$ENGINE" in
       -e HTTP_PROXY="$HTTP_PROXY" \
       -e HTTPS_PROXY="$HTTPS_PROXY" \
       -e NO_PROXY="$NO_PROXY" \
+      -e VLLM_LOGGING_LEVEL=CRITICAL \
       --shm-size="20g" \
       vllm/vllm-openai:latest \
         --model "$MODEL" \
         --trust-remote-code \
         --max-model-len 4096 \
         --port "$PORT" \
-        --gpu-memory-utilization 0.3
+        --gpu-memory-utilization 0.3 \
+        --tensor-parallel-size 1 \
+        --distributed-executor-backend="mp" \
+        -cc.cudagraph_mode="FULL_DECODE_ONLY"
     ;;
 
   sglang)
