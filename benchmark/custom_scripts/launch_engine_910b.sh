@@ -3,13 +3,14 @@
 # launch_engine  —  Launch one of several LLM inference engines via Docker
 #
 # Usage:
-#   ./launch_engine --engine=<engine> --model=<model>
+#   ./launch_engine --engine=<engine> --model=<model> --name<name>
 #
 #   <engine> ∈ { vllm | sglang | xllm }
 #   <model>  is the Hugging Face model ID (e.g. “mistralai/Mistral-7B-Instruct-v0.3”)
+#   <name>   is the name for the container
 #
 # Example:
-#   ./launch_engine --engine=tgi --model=mistralai/Mistral-7B-Instruct-v0.3
+#   ./launch_engine --engine=tgi --model=mistralai/Mistral-7B-Instruct-v0.3 -name="bench360_inference_engine"
 #
 # Notes:
 #   • Expects HF_TOKEN or HUGGING_FACE_HUB_TOKEN in your environment.
@@ -30,17 +31,20 @@ for ARG in "$@"; do
     --model=*)
       MODEL="${ARG#--model=}"
       ;;
+    --name=*)
+      NAME="${ARG#--name=}"
+      ;;
     *)
       echo "Unknown argument: $ARG"
-      echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name>"
+      echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name> --name=<container-name>"
       exit 1
       ;;
   esac
 done
 
-if [[ -z "$ENGINE" || -z "$MODEL" ]]; then
-  echo "Error: both --engine and --model must be provided."
-  echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name>"
+if [[ -z "$ENGINE" || -z "$MODEL" || -z "$NAME" ]]; then
+  echo "Error: All --engine, --model and --name must be provided."
+  echo "Usage: $0 --engine=<vllm|sglang|xllm> --model=<your-org/your-model-name> --name=<container-name>"
   exit 1
 fi
 
@@ -59,6 +63,7 @@ case "$ENGINE" in
 
   vllm)
     docker run --rm \
+      --name $NAME \
       -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
       -e HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" \
       -p 127.0.0.1:${PORT}:${PORT} \
@@ -118,6 +123,7 @@ sglang)
     docker run --rm \
       -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
       -e HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" \
+      --name $NAME \
       -p 127.0.0.1:${PORT}:${PORT} \
       --ipc=host \
       --network=host \
@@ -173,8 +179,9 @@ sglang)
         "
     ;;
 
-  xllm)
+xllm)
     docker run --rm \
+      --name $NAME \
       -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
       -e HUGGING_FACE_HUB_TOKEN="$HF_TOKEN" \
       -p 127.0.0.1:${PORT}:${PORT} \
