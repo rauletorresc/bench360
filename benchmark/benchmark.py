@@ -610,7 +610,7 @@ class ModelBenchmark:
             for prompt, ref in zip(prompts, refs):
                 ttft = self.iec.measure_ttft([prompt], temperature=self.temperature, top_p=self.top_p)
                 t0 = time.time()
-                raw_out = self.generate([prompt])[0]
+                raw_out = self.generate(prompt)[0]
                 gen_time = time.time() - t0
                 intermediate_records.append({
                     "prompt": prompt,
