@@ -229,19 +229,19 @@ xllm)
       -e LD_PRELOAD=/usr/lib64/libtcmalloc.so.4 \
       --shm-size="250g" \
       quay.io/jd_xllm/xllm-ai:xllm-0.7.2-release-hb-rc2-arm \
-        /usr/local/bin/xllm \
-        --model "$MODEL" \
-        --devices="npu:0" \
-        --port "$PORT" \
-        --master_node_addr="127.0.0.1:9748" \
+        bash -c "python -c 'import torch_npu; [torch_npu.npu.set_device(i) for i in range(1)]' && /usr/local/bin/xllm \
+        --model '$MODEL' \
+        --devices='npu:0' \
+        --port '$PORT' \
+        --master_node_addr='127.0.0.1:9748' \
         --nnodes=1 \
         --max_memory_utilization=0.3 \
         --block_size=128 \
-        --communication_backend="hccl" \
+        --communication_backend='hccl' \
         --enable_prefix_cache=false \
         --enable_chunked_prefill=true \
         --enable_schedule_overlap=true \
-        --node_rank=0
+        --node_rank=0"
     ;;
 
   *)
