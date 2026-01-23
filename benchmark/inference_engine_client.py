@@ -74,9 +74,10 @@ class InferenceEngineClient:
                     data = resp.json().get("data", [])
                     # Check if our model_id is in the loaded list
                     for entry in data:
-                        if entry.get("id").lower() == model.lower():
+                        response_model_id = entry.get("id")
+                        if response_model_id.lower() in model.lower():
                             # Model is loaded and ready to serve
-                            self.model = model
+                            self.model = response_model_id
                             return
                 # If status is not 200 or model not found yet, keep waiting
             except requests.exceptions.RequestException:
