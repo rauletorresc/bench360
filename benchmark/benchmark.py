@@ -30,6 +30,7 @@ from pynvml import (
 
 from benchmark.inference_engine_client import InferenceEngineClient
 from benchmark.utils import clean_prediction, tok_cnt, sent_cnt, chunker
+from benchmark.metrics import take_baseline, scrape_metrics, summarize_metrics_since
 
 # Setting a seed globally can affect downstream randomness; consider scoping in methods
 DEFAULT_SEED = 42
@@ -465,6 +466,8 @@ class ModelBenchmark:
         # 2) initialize & metadata
         meta_df = self._initialize(task=task, scenario=scenario)
 
+        baseline = take_baseline(scrape_metrics())
+
         # 3) set meta_df fields
         if scenario == "server":
             rps_user = requests_per_user_per_min / 60.0
@@ -608,7 +611,6 @@ class ModelBenchmark:
 
         else:  # single or other non-server, non-batch scenario
             for prompt, ref in zip(prompts, refs):
-                ttft = self.iec.measure_ttft([prompt], temperature=self.temperature, top_p=self.top_p)
                 t0 = time.time()
                 raw_out = self.generate(prompt)[0]
                 gen_time = time.time() - t0
@@ -617,8 +619,10 @@ class ModelBenchmark:
                     "generated_raw": raw_out,
                     "reference": ref,
                     "generation_time": gen_time,
-                    "ttft": ttft,
                 })
+
+            lines_now = scrape_metrics()
+            metrics = summarize_metrics_since(lines_now, base=baseline)
 
         # 8) stop monitor
         stop_evt.set()
@@ -708,7 +712,6 @@ class ModelBenchmark:
             nt = tok_cnt(generated)     # number of tokens generated
             ns = sent_cnt(generated, mode = scenario)    # number of sentences generated
             gen_time = rec["generation_time"]
-            ttft = rec["ttft"]
 
             # 1) Average Token Latency (seconds per token)
             ATL = gen_time / nt if nt > 0 else 0.0
@@ -762,7 +765,9 @@ class ModelBenchmark:
                 "generated_answer":    generated,
                 "reference_answer":    rec["reference"],
                 "generation_time":     gen_time,
-                "ttft":                ttft,
+                "ttft":                metrics["ttft"]["avg"],
+                #"tpot":                metrics["tpot"]["avg"],
+                "e2e":                 metrics["e2e"]["avg"],
                 "tokens_generated":    nt,
                 "sentences_generated": ns,
                 "ATL":                 round(ATL, 6),
