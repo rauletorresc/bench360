@@ -112,7 +112,46 @@ case "$ENGINE" in
           --model-path $MODEL \
           --host 0.0.0.0 \
           --port $PORT \
+          --enable-metrics
         "
+    ;;
+
+  xllm)
+    set -o xtrace
+    docker run --rm \
+      --gpus all \
+      --name $NAME \
+      -p 127.0.0.1:${PORT}:${PORT} \
+      -v ~/.cache/huggingface:/root/.cache/huggingface \
+      --ipc=host \
+      --network=host \
+      -e http_proxy="$HTTP_PROXY" \
+      -e https_proxy="$HTTPS_PROXY" \
+      -e no_proxy="$NO_PROXY" \
+      -e HTTP_PROXY="$HTTP_PROXY" \
+      -e HTTPS_PROXY="$HTTPS_PROXY" \
+      -e NO_PROXY="$NO_PROXY" \
+      --shm-size="20g" \
+      -e HUGGING_FACE_HUB_TOKEN=$HF_TOKEN \
+      quay.io/jd_xllm/xllm-ai:xllm-dev-cuda-x86 \
+        bash -c "git config --global http.sslverify "false" && \
+        git clone https://github.com/jd-opensource/xllm && \
+        cd xllm && \
+        pip install pre-commit && \
+        pre-commit install && \
+        git submodule update --init && \
+        python setup.py build && \
+        .build/bin/xllm \
+        --model '$MODEL' \
+        --port '$PORT' \
+        --master_node_addr='127.0.0.1:9748' \
+        --nnodes=1 \
+        --max_memory_utilization=0.3 \
+        --block_size=128 \
+        --enable_prefix_cache=false \
+        --enable_chunked_prefill=true \
+        --enable_schedule_overlap=true \
+        --node_rank=0"
     ;;
 
   *)
