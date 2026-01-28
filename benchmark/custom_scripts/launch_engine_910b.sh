@@ -166,16 +166,18 @@ sglang)
       -e HTTPS_PROXY="$HTTPS_PROXY" \
       -e NO_PROXY="$NO_PROXY" \
       --shm-size="250g" \
-      quay.io/ascend/sglang:v0.5.5-cann8.2.rc1-910b \
+      quay.io/ascend/sglang:v0.5.8-cann8.3.rc2-910b \
         bash -c "\
         pip install --no-cache-dir protobuf sentencepiece --break-system-packages && \
+        sed -i -e 's/NPUUtils()\.get_arch()/NPUUtils()\.get_arch()\[:-2\]/g' /usr/local/python3.11.13/lib/python3.11/site-packages/triton/backends/ascend/compiler.py &&
         python3 -m sglang.launch_server \
           --model-path $MODEL \
           --host 0.0.0.0 \
           --port $PORT \
           --device npu \
           --attention-backend ascend \
-          --mem-fraction-static 0.6
+          --mem-fraction-static 0.6 \
+          --enable-metrics
         "
     ;;
 
